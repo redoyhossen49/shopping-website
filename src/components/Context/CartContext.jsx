@@ -10,6 +10,8 @@ export const CartProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [buyNowItem, setBuyNowItem] = useState(null);
+
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
   }, [cartItems]);
@@ -43,6 +45,17 @@ export const CartProvider = ({ children }) => {
     setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
+  // Buy Now uses a dedicated single-item checkout that does not touch the cart.
+  const startBuyNow = (product, quantity = 1) => {
+    setBuyNowItem({ ...product, quantity });
+  };
+
+  const clearBuyNow = () => setBuyNowItem(null);
+
   const totalAmount = cartItems.reduce(
     (total, item) => total + item.price * item.quantity,
     0
@@ -55,7 +68,11 @@ export const CartProvider = ({ children }) => {
         addToCart,
         decreaseQuantity,
         removeFromCart,
+        clearCart,
         totalAmount,
+        buyNowItem,
+        startBuyNow,
+        clearBuyNow,
       }}
     >
       {children}

@@ -1,171 +1,280 @@
-import { NavLink, Link, useLocation } from "react-router-dom";
-import { CiUser, CiLogin, CiShoppingCart, CiMenuBurger } from "react-icons/ci";
-import { IoMdClose } from "react-icons/io";
+
 import { useContext } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import {
+  CiUser,
+  CiLogin,
+  CiShoppingCart,
+  CiMenuBurger,
+} from "react-icons/ci";
+import {
+  FiShoppingBag,
+  FiX,
+  FiShield,
+  FiLogOut,
+  FiPackage,
+} from "react-icons/fi";
 import { menuContext } from "./Context/menuContext";
 import { useCart } from "./Context/CartContext";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../admin/components/Toast.jsx";
+
+const navLinks = [
+  { label: "Home", to: "/" },
+  { label: "About", to: "/about" },
+  { label: "Products", to: "/products" },
+  { label: "Contact", to: "/contact" },
+  { label: "Track Order", to: "/track-order" },
+];
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { menuOpen, setMenuOpen } = useContext(menuContext);
   const { cartItems } = useCart();
+  const { user, logout } = useAuth();
+  const toast = useToast();
+
+  const handleLogout = async () => {
+    await logout();
+    toast?.info("You have been signed out");
+    setMenuOpen(false);
+    navigate("/");
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  const totalCartItems = cartItems.reduce(
+    (total, item) => total + (Number(item.quantity) || 1),
+    0
+  );
+
+  const closeMenu = () => setMenuOpen(false);
+
+  const navLinkClass = ({ isActive: active }) =>
+    `relative rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-200 ${
+      active
+        ? "text-indigo-600"
+        : "text-slate-600 hover:text-indigo-600"
+    }`;
+
+  const accountLinkClass = (path) =>
+    `inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+          isActive(path)
+        ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+        : "border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+    }`;
+
+  const renderNavLinks = (mobile = false) =>
+    navLinks.map((item) => (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        end={item.to === "/"}
+        onClick={mobile ? closeMenu : undefined}
+        className={({ isActive: active }) =>
+          `${navLinkClass({ isActive: active })} ${
+            mobile ? "block w-full px-4 py-3" : ""
+          }`
+        }
+      >
+        {item.label}
+        {isActive(item.to) && (
+          <span className="absolute inset-x-3 -bottom-0.5 hidden h-0.5 rounded-full bg-indigo-600 lg:block" />
+        )}
+      </NavLink>
+    ));
+
   return (
-    <nav className="bg-neutral-50   py-2 fixed top-0 left-0 right-0 z-50">
-      <div className="container mx-auto flex justify-between items-center px-4 md:px-8 py-3">
-        <h2
-          style={{ textShadow: "1px 1px 2px blue" }}
-          className="text-red-600 font-bold text-xl md:text-3xl cursor-pointer hover:text-yellow-500 hover:scale-105"
+<header className="sticky top-0 z-50 w-full border-b border-indigo-100/80 bg-slate-700/10 shadow-sm shadow-indigo-950/[0.03] backdrop-blur-xl">
+      <nav
+        className="mx-auto flex min-h-[76px] max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8"
+        aria-label="Main navigation"
+      >
+        {/* Brand */}
+        <Link
+          to="/"
+          onClick={closeMenu}
+          className="group flex shrink-0 items-center gap-2.5"
+          aria-label="NovaShop home"
         >
-          NovaShop
-        </h2>
-        <div className="hidden lg:flex space-x-4 text-base text-gray-500 font-josefin  ">
-          <NavLink
-            to="/"
-            className={({ isActive }) => ` hover:text-red-500
-             ${isActive ? "text-black font-bold" : "text-gray-500"}
-           `}
-          >
-            Home
-          </NavLink>
-          <NavLink
-            to="/about"
-            className={({ isActive }) => ` hover:text-red-500
-             ${isActive ? "text-black font-bold" : "text-gray-500"}
-           `}
-          >
-            About
-          </NavLink>
-          <NavLink
-            to="/products"
-            className={({ isActive }) => ` hover:text-red-500
-             ${isActive ? "text-black font-bold" : "text-gray-500"}
-           `}
-          >
-            Products
-          </NavLink>
-          <NavLink
-            to="/contact"
-            className={({ isActive }) => ` hover:text-red-500
-             ${isActive ? "text-black font-bold" : "text-gray-500"}
-           `}
-          >
-            Contact
-          </NavLink>
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/20 transition-transform duration-200 group-hover:scale-105">
+            <FiShoppingBag size={23} />
+          </span>
+
+          <span className="flex flex-col">
+            <span className="text-xl font-extrabold tracking-tight text-blue-950 sm:text-2xl">
+              Nova<span className="text-indigo-600">Shop</span>
+            </span>
+            <span className="hidden text-[11px] font-medium tracking-wide text-slate-500 sm:block">
+              Shop Smarter, Live Better
+            </span>
+          </span>
+        </Link>
+
+        {/* Desktop navigation */}
+        <div className="hidden items-center gap-1 lg:flex">
+          {renderNavLinks()}
         </div>
-        <div className="hidden lg:flex space-x-4  ">
+
+        {/* Desktop account actions */}
+        <div className="hidden items-center gap-2 xl:flex">
+          {user ? (
+            <>
+              <Link to="/account" className={accountLinkClass("/account")}>
+                <CiUser size={20} />
+                {user.name?.split(" ")[0] || "My Account"}
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className={accountLinkClass("/logout")}
+              >
+                <FiLogOut size={18} />
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className={accountLinkClass("/login")}>
+                <CiLogin size={20} />
+                Login
+              </Link>
+
+              <Link to="/register" className={accountLinkClass("/register")}>
+                <CiUser size={20} />
+                Register
+              </Link>
+            </>
+          )}
+
           <Link
-            to="/login"
-            className={`flex items-center gap-2 border  border-black px-3 py-1 hover:bg-gray-400 rounded ${
-              location.pathname === "/login" ? "bg-gray-600  text-white" : ""
-            } `}
-          >
-            <CiLogin />
-            <span>Login</span>
-          </Link>
-          <Link
-            to="/register"
-            className={`flex items-center gap-2 border  border-black px-3 py-1 hover:bg-gray-400 rounded ${
-              location.pathname === "/register" ? "bg-gray-600  text-white" : ""
-            } `}
-          >
-            <CiUser />
-            <span>Register</span>
-          </Link>
-          <Link
-            className={`flex items-center gap-2 border  border-black px-3 py-1 hover:bg-gray-400 rounded ${
-              location.pathname === "/cart" ? "bg-gray-600  text-white" : ""
-            } `}
             to="/cart"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
+              isActive("/cart")
+                ? "bg-indigo-700 text-white"
+                : "bg-blue-950 text-white shadow-sm hover:bg-blue-900"
+            }`}
           >
-            <CiShoppingCart />
-            <span>
-              Cart
-              {cartItems.length > 0 && <span>( {cartItems.length})</span>}
+            <CiShoppingCart size={21} />
+            Cart
+            <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs">
+              {totalCartItems}
             </span>
           </Link>
-        </div>
-        {/* small device menu icon*/}
-        <div className="lg:hidden">
-          <button onClick={() => setMenuOpen(!menuOpen)}>
-            {menuOpen ? (
-              <IoMdClose className="w-6 h-6 text-gray-800"></IoMdClose>
-            ) : (
-              <CiMenuBurger className="w-6 h-6 text-gray-800"></CiMenuBurger>
-            )}
-          </button>
-        </div>
-      </div>
 
-      {menuOpen && (
-        <div
-          className={`lg:hidden flex flex-col items-center space-y-3 font-josefin bg-neutral-50 overflow-hidden transition-all duration-500 ease-in-out transform origin-top ${
-            menuOpen
-              ? "max-h-96 opacity-100 scale-y-100"
-              : "max-h-0 opacity-0 scale-y-0"
-          }`}
+          <Link
+            to="/admin/login"
+            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+              isActive("/admin/login")
+                ? "border-blue-950 bg-blue-950 text-white"
+                : "border-blue-950 text-blue-950 hover:bg-blue-950 hover:text-white"
+            }`}
+          >
+            <FiShield size={17} />
+            Admin Login
+          </Link>
+        </div>
+
+        {/* Mobile menu button */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-blue-950 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 lg:hidden"
+          aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={menuOpen}
         >
-          <Link
-            onClick={() => setMenuOpen(false)}
-            className="block text-gray-700 hover:text-red-500"
-            to="/"
-          >
-            Home
-          </Link>
-          <Link
-            onClick={() => setMenuOpen(false)}
-            className="block text-gray-700 hover:text-red-500"
-            to="/products"
-          >
-            Products
-          </Link>
-          <Link
-            onClick={() => setMenuOpen(false)}
-            className="block text-gray-700 hover:text-red-500"
-            to="/about"
-          >
-            About
-          </Link>
+          {menuOpen ? <FiX size={23} /> : <CiMenuBurger size={25} />}
+        </button>
+      </nav>
 
-          <Link
-            onClick={() => setMenuOpen(false)}
-            className="block text-gray-700 hover:text-red-500"
-            to="/contact"
-          >
-            Contact
-          </Link>
+      {/* Mobile menu */}
+      <div
+        className={`overflow-hidden border-t border-slate-100 bg-white transition-[max-height,opacity] duration-300 lg:hidden ${
+          menuOpen
+            ? "max-h-[600px] opacity-100"
+            : "pointer-events-none max-h-0 opacity-0"
+        }`}
+        aria-hidden={!menuOpen}
+        inert={!menuOpen}
+      >
+        <div className="mx-auto max-w-[1440px] space-y-2 px-4 py-4 sm:px-6">
+          <div className="space-y-1">{renderNavLinks(true)}</div>
 
-          <div className="flex flex-wrap justify-center  gap-4  ">
+          <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
+            {user ? (
+              <>
+                <Link
+                  to="/account"
+                  onClick={closeMenu}
+                  className={accountLinkClass("/account")}
+                >
+                  <CiUser size={20} />
+                  My Account
+                </Link>
+
+                <Link
+                  to="/account/orders"
+                  onClick={closeMenu}
+                  className={accountLinkClass("/account/orders")}
+                >
+                  <FiPackage size={18} />
+                  My Orders
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 px-3 py-3 text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50"
+                >
+                  <FiLogOut size={18} />
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={closeMenu}
+                  className={accountLinkClass("/login")}
+                >
+                  <CiLogin size={20} />
+                  Login
+                </Link>
+
+                <Link
+                  to="/register"
+                  onClick={closeMenu}
+                  className={accountLinkClass("/register")}
+                >
+                  <CiUser size={20} />
+                  Register
+                </Link>
+              </>
+            )}
+
             <Link
-              onClick={() => setMenuOpen(false)}
-              to="/login"
-              className="flex items-center gap-2 border  border-black px-3 py-1 hover:bg-gray-400 rounded "
-            >
-              <CiLogin />
-              <span>Login</span>
-            </Link>
-            <Link
-              onClick={() => setMenuOpen(false)}
-              to="/register"
-              className="flex items-center gap-2 border  border-black px-3 py-1 hover:bg-gray-400 rounded "
-            >
-              <CiUser />
-              <span>Register</span>
-            </Link>
-            <Link
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2 border  border-black px-3 py-1 hover:bg-gray-400 rounded "
               to="/cart"
+              onClick={closeMenu}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-950 px-3 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-900"
             >
-              <CiShoppingCart />
-              <span>
-                Cart
-                {cartItems.length > 0 && <span>( {cartItems.length})</span>}
-              </span>
+              <CiShoppingCart size={21} />
+              Cart ({totalCartItems})
+            </Link>
+
+            <Link
+              to="/admin/login"
+              onClick={closeMenu}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-950 px-3 py-3 text-sm font-semibold text-blue-950 transition-colors hover:bg-blue-950 hover:text-white"
+            >
+              <FiShield size={17} />
+              Admin
             </Link>
           </div>
         </div>
-      )}
-    </nav>
+      </div>
+    </header>
   );
 };
 

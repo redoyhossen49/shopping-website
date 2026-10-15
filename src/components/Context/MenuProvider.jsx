@@ -3,10 +3,7 @@ import { menuContext } from "./menuContext";
 
 const MenuProvider = ({ children }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  return (
-    <menuContext.Provider value={{ menuOpen, setMenuOpen }}>
-      {children}
-    </menuContext.Provider>
-  );
+  const Provider = menuContext.Provider;
+  return <Provider value={{ menuOpen, setMenuOpen }}>{children}</Provider>;
 };
 export default MenuProvider;

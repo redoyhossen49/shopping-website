@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "read": {
+      "*": "allow",
+      "**/node_modules/**": "deny"
+    },
+    "glob": {
+      "*": "allow",
+      "**/node_modules/**": "deny"
+    },
+    "grep": {
+      "*": "allow",
+      "**/node_modules/**": "deny"
+    },
+    "list": {
+      "*": "allow",
+      "**/node_modules/**": "deny"
+    }
+  }
+}
