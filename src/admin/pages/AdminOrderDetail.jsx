@@ -13,6 +13,8 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
+import { useAdminAuth } from "../context/AdminAuthContext.jsx";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import {
   Badge,
@@ -23,6 +25,7 @@ import {
   OrderStatusBadge,
   PageHeader,
   PaymentStatusBadge,
+  ReadOnlyNotice,
   Select,
   Skeleton,
   cx,
@@ -47,6 +50,8 @@ const PAYMENT_STATUSES = ["unpaid", "paid", "refunded", "failed"];
 export default function AdminOrderDetail() {
   const { id } = useParams();
   const toast = useToast();
+  const { isReadOnly } = useAdminAuth();
+  const { to } = useAdminBase();
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -164,12 +169,12 @@ export default function AdminOrderDetail() {
         title={order.order_number}
         description={`Placed ${formatDateTime(order.created_at)}`}
         breadcrumb={[
-          { label: "Orders", to: "/admin/orders" },
+          { label: "Orders", to: "/orders" },
           { label: order.order_number },
         ]}
         actions={
           <Link
-            to="/admin/orders"
+            to={to("/orders")}
             className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600"
           >
             <FiArrowLeft size={16} /> Back to orders
@@ -182,6 +187,8 @@ export default function AdminOrderDetail() {
         <PaymentStatusBadge status={order.payment_status} />
         {order.currency && <Badge tone="neutral">{order.currency}</Badge>}
       </div>
+
+      {isReadOnly && <ReadOnlyNotice />}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -202,7 +209,7 @@ export default function AdminOrderDetail() {
                     <td className="px-5 py-3">
                       {item.product_id ? (
                         <Link
-                          to={`/admin/products/${item.product_id}/edit`}
+                          to={to(`/products/${item.product_id}/edit`)}
                           className="font-medium text-indigo-700 hover:underline"
                         >
                           {item.product_title}
@@ -291,6 +298,21 @@ export default function AdminOrderDetail() {
           <Card>
             <CardHeader title="Fulfilment" />
             <div className="space-y-5 p-5">
+              {isReadOnly ? (
+                <p className="text-sm text-slate-600">
+                  This order is{" "}
+                  <span className="font-semibold">
+                    {titleCase(order.status)}
+                  </span>{" "}
+                  with payment{" "}
+                  <span className="font-semibold">
+                    {titleCase(order.payment_status)}
+                  </span>
+                  . Order and payment updates are disabled in the read-only
+                  demo.
+                </p>
+              ) : (
+                <>
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-[#263968]">
                   Order status
@@ -354,12 +376,15 @@ export default function AdminOrderDetail() {
                   </Button>
                 </div>
               </div>
+                </>
+              )}
             </div>
           </Card>
 
           <Card>
             <CardHeader title="Shipping & Tracking" />
             <div className="space-y-4 p-5">
+              <fieldset disabled={isReadOnly} className="contents">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Carrier">
                   <Input
@@ -395,9 +420,12 @@ export default function AdminOrderDetail() {
                   />
                 </Field>
               </div>
-              <Button onClick={saveTracking} loading={savingTracking}>
-                <FiTruck size={16} /> Save tracking details
-              </Button>
+              </fieldset>
+              {!isReadOnly && (
+                <Button onClick={saveTracking} loading={savingTracking}>
+                  <FiTruck size={16} /> Save tracking details
+                </Button>
+              )}
 
               {order.tracking?.length > 0 && (
                 <div className="border-t border-[#E3E9F7] pt-4">

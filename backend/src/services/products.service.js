@@ -84,10 +84,13 @@ export async function listPublicProducts({
 
   const listParams = [...params, limit, offset];
 
+  // The sort column alone is not a total order (e.g. many rows share the same
+  // created_at / price / title), so append the unique id as a tie-breaker.
+  // Without it LIMIT/OFFSET pages overlap and skip rows.
   const result = await pool.query(
     `${PUBLIC_SELECT}
      ${where}
-     ORDER BY p.${sortColumn} ${direction}
+     ORDER BY p.${sortColumn} ${direction}, p.id ${direction}
      LIMIT $${listParams.length - 1} OFFSET $${listParams.length}`,
     listParams
   );
@@ -173,7 +176,7 @@ export async function listAdminProducts({
   const result = await pool.query(
     `${ADMIN_SELECT}
      ${where}
-     ORDER BY p.${sortColumn} ${direction}
+     ORDER BY p.${sortColumn} ${direction}, p.id ${direction}
      LIMIT $${listParams.length - 1} OFFSET $${listParams.length}`,
     listParams
   );

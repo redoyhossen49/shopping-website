@@ -69,8 +69,8 @@ function pageWindow(current, total) {
 
 const Products = () => {
   const { products, meta, loading, error, load } = useContext(ProductsContext);
-  const productsSectionRef = useRef(null);
-const shouldScrollRef = useRef(false);
+  const sectionRef = useRef(null);
+  const pendingScrollRef = useRef(false);
 
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([]);
@@ -134,25 +134,29 @@ const shouldScrollRef = useRef(false);
   const totalPages = meta?.totalPages ?? 1;
   const currentPage = meta?.page ?? page;
 
-   useEffect(() => {
-  if (!shouldScrollRef.current || loading) return;
+  // Smooth-scroll to the top of the products section (not the page top) only
+  // after a pagination interaction and once the new page has rendered. The
+  // sticky header height is measured so the section is never hidden under it.
+  useEffect(() => {
+    if (!pendingScrollRef.current || loading) return;
 
-  const target = document.getElementById("products-section");
-  if (!target) return;
+    pendingScrollRef.current = false;
 
-  shouldScrollRef.current = false;
+    const target = sectionRef.current;
+    if (!target) return;
 
-  const navbarOffset = 100;
-  const targetTop =
-    target.getBoundingClientRect().top +
-    window.scrollY -
-    navbarOffset;
+    const header =
+      document.querySelector("header.sticky") || document.querySelector("header");
+    const headerHeight = header ? header.getBoundingClientRect().height : 0;
 
-  window.scrollTo({
-    top: Math.max(0, targetTop),
-    behavior: "smooth",
-  });
-}, [currentPage, loading, products]);
+    const targetTop =
+      target.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
+
+    window.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: "smooth",
+    });
+  }, [meta, loading, products]);
 
   const changeCategory = (value) => {
     setCategory(value);
@@ -176,20 +180,20 @@ const shouldScrollRef = useRef(false);
   };
 
   const goToPage = (nextPage) => {
-  if (nextPage < 1 || nextPage > totalPages || nextPage === currentPage) {
-    return;
-  }
+    if (nextPage < 1 || nextPage > totalPages || nextPage === currentPage) {
+      return;
+    }
 
-  shouldScrollRef.current = true;
-  setPage(nextPage);
-};
+    pendingScrollRef.current = true;
+    setPage(nextPage);
+  };
 
   const emptyMessage = search
     ? `No products match "${search}".`
     : "No products found in this category yet.";
 
   return (
-    <div   className={paddingClass}>
+    <div ref={sectionRef} className={paddingClass}>
       <h2 className="text-3xl md:text-5xl text-center text-gray-700 mb-4">
         Latest Products
       </h2>
@@ -308,7 +312,6 @@ const shouldScrollRef = useRef(false);
           )}
 
           <div
-  ref={productsSectionRef}
   id="first-product-position"
   className="scroll-mt-24"
 >

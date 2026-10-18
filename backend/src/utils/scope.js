@@ -1,17 +1,18 @@
-import { env } from "../config/env.js";
-
 /**
  * Data scoping.
  *
- * NovaShop can run a public demo on the same database as a real store. Demo
- * rows are flagged is_demo = TRUE. Every read and write must stay inside one
- * scope so a recruiter exploring the demo can never see or mutate real data,
- * and the store owner never sees demo data.
+ * NovaShop can host a read-only demo sandbox alongside a real store on the
+ * same database. Demo rows are flagged is_demo = TRUE. Every read and write
+ * must stay inside one scope so a recruiter exploring the demo can never see or
+ * mutate real data, and the store owner never sees demo data.
  *
  * The rule is deliberately simple and server-owned:
  *   - Admin requests use the scope on the authenticated admin's own row.
- *   - Public (storefront) requests use the deployment configuration.
- * A client can never choose its own scope.
+ *   - The public storefront always serves the real store.
+ *   - A shopper who is signed in to a demo account writes demo data; everyone
+ *     else (including guests) writes to the real store.
+ * A client can never choose its own scope, and the DEMO_MODE flag only gates
+ * the read-only demo sandbox — it never hides the real catalogue.
  */
 
 /** Scope for an authenticated admin, taken from their database row. */
@@ -19,19 +20,20 @@ export function adminScope(req) {
   return Boolean(req.admin?.is_demo);
 }
 
-/** The public storefront always follows the deployment's demo configuration. */
+/**
+ * The public storefront always shows the store's real catalogue. The demo
+ * sandbox is a separate, authenticated scope (see adminScope) and is never
+ * mixed into the public storefront.
+ */
 export function publicScope() {
-  return env.demoMode;
+  return false;
 }
 
 /**
  * Scope for a write initiated by a shopper (checkout, return request).
- * A signed-in demo account writes demo data; guests follow deployment config.
+ * A signed-in demo account writes demo data; guests and real customers write
+ * to the real store.
  */
 export function shopperScope(req) {
-  if (req.user && typeof req.user.isDemo === "boolean") {
-    return req.user.isDemo;
-  }
-
-  return env.demoMode;
+  return Boolean(req.user?.isDemo);
 }

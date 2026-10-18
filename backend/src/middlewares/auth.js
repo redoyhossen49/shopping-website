@@ -79,6 +79,26 @@ export async function requireAdmin(req, res, next) {
   }
 }
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * The public demo is a read-only window into the dashboard. Even though demo
+ * data is isolated with is_demo, a demo session must never create, edit or
+ * delete anything. Applied after requireAdmin, so it only ever inspects a
+ * verified admin. Real owners are unaffected.
+ */
+export function blockDemoWrites(req, res, next) {
+  if (req.admin?.is_demo && !SAFE_METHODS.has(req.method)) {
+    return next(
+      forbidden(
+        "The live demo is read-only. Sign in as the store owner to make changes."
+      )
+    );
+  }
+
+  return next();
+}
+
 export function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) {

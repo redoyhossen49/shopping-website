@@ -35,6 +35,7 @@ export default defineConfig([
           allowExportNames: [
             'useAuth',
             'useAdminAuth',
+            'useAdminBase',
             'useCart',
             'useProducts',
             'useToast',

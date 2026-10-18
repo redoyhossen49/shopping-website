@@ -2,7 +2,7 @@ import { pool } from "../config/db.js";
 import { buildMeta } from "../utils/pagination.js";
 
 const PUBLIC_USER_COLUMNS =
-  "id, name, email, role, phone, is_active, created_at, updated_at";
+  "id, name, email, role, phone, is_active, is_demo, created_at, updated_at";
 
 export async function getAuthUserById(id) {
   const result = await pool.query(

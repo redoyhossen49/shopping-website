@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FiRefreshCw, FiSave, FiSettings } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
 import { useAppConfig } from "../../context/AppConfigContext.jsx";
+import { useAdminAuth } from "../context/AdminAuthContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import {
   Button,
@@ -12,6 +13,7 @@ import {
   Field,
   Input,
   PageHeader,
+  ReadOnlyNotice,
   Skeleton,
 } from "../components/ui.jsx";
 
@@ -26,6 +28,7 @@ const EMPTY = {
 export default function AdminSettings() {
   const toast = useToast();
   const { demoMode } = useAppConfig();
+  const { isReadOnly } = useAdminAuth();
 
   const [settings, setSettings] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -147,9 +150,12 @@ export default function AdminSettings() {
         breadcrumb={[{ label: "Settings" }]}
       />
 
+      {isReadOnly && <ReadOnlyNotice className="mb-6" />}
+
       <form onSubmit={save}>
         <Card>
           <CardHeader title="General" />
+          <fieldset disabled={isReadOnly} className="contents">
           <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2">
             {formError && (
               <div className="col-span-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -226,17 +232,20 @@ export default function AdminSettings() {
               />
             </Field>
           </div>
+          </fieldset>
         </Card>
 
-        <div className="mt-6 flex justify-end">
-          <Button type="submit" loading={saving}>
-            <FiSave size={16} />
-            Save settings
-          </Button>
-        </div>
+        {!isReadOnly && (
+          <div className="mt-6 flex justify-end">
+            <Button type="submit" loading={saving}>
+              <FiSave size={16} />
+              Save settings
+            </Button>
+          </div>
+        )}
       </form>
 
-      {demoMode && (
+      {demoMode && !isReadOnly && (
         <Card>
           <CardHeader
             title="Demo sandbox"

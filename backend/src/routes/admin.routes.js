@@ -1,5 +1,9 @@
 import express from "express";
-import { requireAdmin, requireAuth } from "../middlewares/auth.js";
+import {
+  blockDemoWrites,
+  requireAdmin,
+  requireAuth,
+} from "../middlewares/auth.js";
 import {
   getDashboardController,
   getAnalyticsController,
@@ -54,6 +58,10 @@ import { demoResetLimiter } from "../middlewares/rateLimit.js";
 const router = express.Router();
 
 router.use(requireAuth, requireAdmin);
+
+// The public demo session is read-only: reject every mutating request before
+// it reaches a controller. Real owner sessions pass straight through.
+router.use(blockDemoWrites);
 
 router.get("/me", requireAdminSession);
 router.get("/dashboard", getDashboardController);

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiEye, FiUsers } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
 import useDebouncedValue from "../hooks/useDebouncedValue.js";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 import {
   Badge,
   Button,
@@ -18,6 +19,7 @@ import { formatCurrency, formatDate, formatNumber } from "../../utils/format.js"
 
 export default function AdminCustomers() {
   const navigate = useNavigate();
+  const { to } = useAdminBase();
 
   const [customers, setCustomers] = useState([]);
   const [meta, setMeta] = useState(null);
@@ -126,7 +128,7 @@ export default function AdminCustomers() {
                     <tr
                       key={customer.id}
                       className="cursor-pointer hover:bg-indigo-50/40"
-                      onClick={() => navigate(`/admin/customers/${customer.id}`)}
+                      onClick={() => navigate(to(`/customers/${customer.id}`))}
                     >
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
@@ -167,7 +169,7 @@ export default function AdminCustomers() {
                             aria-label={`View ${customer.name}`}
                             onClick={(event) => {
                               event.stopPropagation();
-                              navigate(`/admin/customers/${customer.id}`);
+                              navigate(to(`/customers/${customer.id}`));
                             }}
                           >
                             <FiEye size={16} />

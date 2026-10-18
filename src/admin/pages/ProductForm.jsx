@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { FiArrowLeft, FiSave, FiImage } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
+import { useAdminAuth } from "../context/AdminAuthContext.jsx";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import {
   Button,
@@ -11,6 +13,7 @@ import {
   Field,
   Input,
   PageHeader,
+  ReadOnlyNotice,
   Select,
   Skeleton,
   Textarea,
@@ -33,6 +36,8 @@ export default function ProductForm() {
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const toast = useToast();
+  const { isReadOnly } = useAdminAuth();
+  const { to } = useAdminBase();
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [categories, setCategories] = useState([]);
@@ -151,7 +156,7 @@ export default function ProductForm() {
         await adminApi.createProduct(payload);
         toast.success("Product created.");
       }
-      navigate("/admin/products");
+      navigate(to("/products"));
     } catch (err) {
       if (err.details && typeof err.details === "object") {
         setErrors(err.details);
@@ -179,18 +184,35 @@ export default function ProductForm() {
     );
   }
 
+  if (isReadOnly && !isEdit) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Add product"
+          description="Creating products is disabled in the read-only demo."
+          breadcrumb={[{ label: "Products", to: "/products" }]}
+        />
+        <Card>
+          <ReadOnlyNotice className="m-5" />
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate>
       <PageHeader
-        title={isEdit ? "Edit product" : "Add product"}
+        title={isEdit ? (isReadOnly ? "Product details" : "Edit product") : "Add product"}
         description={
-          isEdit
-            ? "Update product details, pricing, and stock."
-            : "Add a new item to your store catalog."
+          isReadOnly
+            ? "Read-only view of this product."
+            : isEdit
+              ? "Update product details, pricing, and stock."
+              : "Add a new item to your store catalog."
         }
         actions={
           <Link
-            to="/admin/products"
+            to={to("/products")}
             className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600"
           >
             <FiArrowLeft size={16} /> Back to products
@@ -198,7 +220,10 @@ export default function ProductForm() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {isReadOnly && <ReadOnlyNotice />}
+
+      <fieldset disabled={isReadOnly} className="contents">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader title="Product details" />
@@ -401,20 +426,24 @@ export default function ProductForm() {
           </Card>
 
           <div className="flex gap-3">
-            <Button type="submit" className="flex-1" loading={submitting}>
-              <FiSave size={16} />
-              {isEdit ? "Save changes" : "Create product"}
-            </Button>
+            {!isReadOnly && (
+              <Button type="submit" className="flex-1" loading={submitting}>
+                <FiSave size={16} />
+                {isEdit ? "Save changes" : "Create product"}
+              </Button>
+            )}
             <Button
               type="button"
-              variant="secondary"
-              onClick={() => navigate("/admin/products")}
+              variant={isReadOnly ? "primary" : "secondary"}
+              className={isReadOnly ? "flex-1" : undefined}
+              onClick={() => navigate(to("/products"))}
             >
-              Cancel
+              {isReadOnly ? "Back to products" : "Cancel"}
             </Button>
           </div>
         </div>
       </div>
+      </fieldset>
     </form>
   );
 }

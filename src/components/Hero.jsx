@@ -9,9 +9,13 @@ import {
   FiHeadphones,
   FiHeart,
   FiPackage,
+  FiMonitor,
 } from "react-icons/fi";
+import { useAppConfig } from "../context/AppConfigContext.jsx";
 
 const Hero = () => {
+  const { demoMode } = useAppConfig();
+
   return (
     <section className="relative isolate mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:mt-6">
       {/* Background decoration */}
@@ -71,6 +75,16 @@ const Hero = () => {
               <FiShoppingBag />
               Explore Products
             </Link>
+
+            {demoMode && (
+              <Link
+                to="/demo/dashboard"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-7 py-3.5 font-semibold text-indigo-700 transition duration-300 hover:border-indigo-600 hover:bg-indigo-100"
+              >
+                <FiMonitor />
+                Explore Admin Dashboard
+              </Link>
+            )}
           </div>
 
           {/* Highlights */}

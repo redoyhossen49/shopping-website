@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FiPlus, FiEdit2, FiTrash2, FiTag } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
+import { useAdminAuth } from "../context/AdminAuthContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import {
   Button,
@@ -12,6 +13,7 @@ import {
   Input,
   Modal,
   PageHeader,
+  ReadOnlyNotice,
   TableSkeleton,
   Textarea,
 } from "../components/ui.jsx";
@@ -21,6 +23,7 @@ const EMPTY = { name: "", description: "", image_url: "" };
 
 export default function AdminCategories() {
   const toast = useToast();
+  const { isReadOnly } = useAdminAuth();
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -129,11 +132,15 @@ export default function AdminCategories() {
         description="Organize your catalog into shoppable groups."
         breadcrumb={[{ label: "Categories" }]}
         actions={
-          <Button onClick={openCreate}>
-            <FiPlus size={16} /> New category
-          </Button>
+          isReadOnly ? undefined : (
+            <Button onClick={openCreate}>
+              <FiPlus size={16} /> New category
+            </Button>
+          )
         }
       />
+
+      {isReadOnly && <ReadOnlyNotice />}
 
       <Card>
         {loading ? (
@@ -146,9 +153,11 @@ export default function AdminCategories() {
             title="No categories yet"
             description="Create your first category to start organizing products."
             action={
-              <Button onClick={openCreate}>
-                <FiPlus size={16} /> New category
-              </Button>
+              isReadOnly ? undefined : (
+                <Button onClick={openCreate}>
+                  <FiPlus size={16} /> New category
+                </Button>
+              )
             }
           />
         ) : (
@@ -201,20 +210,22 @@ export default function AdminCategories() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          aria-label={`Edit ${category.name}`}
+                          aria-label={`${isReadOnly ? "View" : "Edit"} ${category.name}`}
                           onClick={() => openEdit(category)}
                         >
                           <FiEdit2 size={16} />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          aria-label={`Delete ${category.name}`}
-                          className="text-rose-600 hover:bg-rose-50"
-                          onClick={() => setPendingDelete(category)}
-                        >
-                          <FiTrash2 size={16} />
-                        </Button>
+                        {!isReadOnly && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Delete ${category.name}`}
+                            className="text-rose-600 hover:bg-rose-50"
+                            onClick={() => setPendingDelete(category)}
+                          >
+                            <FiTrash2 size={16} />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -228,9 +239,18 @@ export default function AdminCategories() {
       <Modal
         open={Boolean(editor)}
         onClose={() => setEditor(null)}
-        title={editor?.mode === "edit" ? "Edit category" : "New category"}
+        title={
+          isReadOnly
+            ? "Category details"
+            : editor?.mode === "edit"
+              ? "Edit category"
+              : "New category"
+        }
       >
         <form onSubmit={handleSave} className="space-y-4">
+          {isReadOnly && <ReadOnlyNotice />}
+
+          <fieldset disabled={isReadOnly} className="contents">
           {formError && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {formError}
@@ -271,17 +291,21 @@ export default function AdminCategories() {
             />
           </Field>
 
+          </fieldset>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
               variant="secondary"
               onClick={() => setEditor(null)}
             >
-              Cancel
+              {isReadOnly ? "Close" : "Cancel"}
             </Button>
-            <Button type="submit" loading={saving}>
-              {editor?.mode === "edit" ? "Save changes" : "Create category"}
-            </Button>
+            {!isReadOnly && (
+              <Button type="submit" loading={saving}>
+                {editor?.mode === "edit" ? "Save changes" : "Create category"}
+              </Button>
+            )}
           </div>
         </form>
       </Modal>

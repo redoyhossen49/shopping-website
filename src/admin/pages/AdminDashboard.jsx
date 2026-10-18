@@ -10,6 +10,8 @@ import {
   FiArrowRight,
 } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
+import { useAdminAuth } from "../context/AdminAuthContext.jsx";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import StatCard from "../components/StatCard.jsx";
 import { BarChart, DonutChart } from "../components/Chart.jsx";
@@ -42,6 +44,8 @@ function bucketLabel(bucket, kind) {
 
 export default function AdminDashboard() {
   const toast = useToast();
+  const { isReadOnly } = useAdminAuth();
+  const { to } = useAdminBase();
   const [range, setRange] = useState("30d");
   const [kpis, setKpis] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -129,9 +133,11 @@ export default function AdminDashboard() {
         title="Overview"
         description="A live summary of sales, orders, and inventory."
         actions={
-          <LinkButton to="/admin/products/new" variant="primary">
-            <FiPackage size={16} /> Add product
-          </LinkButton>
+          isReadOnly ? undefined : (
+            <LinkButton to={to("/products/new")} variant="primary">
+              <FiPackage size={16} /> Add product
+            </LinkButton>
+          )
         }
       />
 
@@ -225,7 +231,7 @@ export default function AdminDashboard() {
             title="Recent orders"
             actions={
               <Link
-                to="/admin/orders"
+                to={to("/orders")}
                 className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800"
               >
                 View all <FiArrowRight size={15} />
@@ -254,7 +260,7 @@ export default function AdminDashboard() {
                     <tr key={order.id} className="hover:bg-indigo-50/40">
                       <td className="px-5 py-3">
                         <Link
-                          to={`/admin/orders/${order.id}`}
+                          to={to(`/orders/${order.id}`)}
                           className="font-semibold text-indigo-700 hover:underline"
                         >
                           {order.order_number}
@@ -320,7 +326,7 @@ export default function AdminDashboard() {
             title="Low stock alerts"
             actions={
               <Link
-                to="/admin/inventory"
+                to={to("/inventory")}
                 className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800"
               >
                 Manage <FiArrowRight size={15} />

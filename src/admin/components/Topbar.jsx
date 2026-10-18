@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMenu, FiLogOut, FiChevronDown, FiUser } from "react-icons/fi";
 import { useAdminAuth } from "../context/AdminAuthContext.jsx";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 import { Button } from "./ui.jsx";
 
 export default function Topbar({ title, onMenuClick }) {
-  const { admin, logout } = useAdminAuth();
+  const { admin, logout, isReadOnly } = useAdminAuth();
+  const { to } = useAdminBase();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -21,7 +23,8 @@ export default function Topbar({ title, onMenuClick }) {
     setLoggingOut(true);
     try {
       await logout();
-      navigate("/admin/login", { replace: true });
+      // A demo session is anonymous: leave for the storefront, not a login page.
+      navigate(isReadOnly ? "/" : to("/login"), { replace: true });
     } finally {
       setLoggingOut(false);
     }
@@ -92,7 +95,7 @@ export default function Topbar({ title, onMenuClick }) {
                   onClick={handleLogout}
                   loading={loggingOut}
                 >
-                  <FiLogOut size={16} /> Sign out
+                  <FiLogOut size={16} /> {isReadOnly ? "Exit demo" : "Sign out"}
                 </Button>
               </div>
             </div>

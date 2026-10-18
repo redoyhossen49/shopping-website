@@ -47,14 +47,14 @@ const Home = () => {
             <p className="max-w-xl text-sm leading-6 text-slate-300">
               Want to see the operations side? Open the admin dashboard with a
               pre-loaded dataset of orders, customers, returns and inventory —
-              no credentials needed.
+              no credentials needed. Read-only, and isolated from real data.
             </p>
             <Link
-              to="/admin/login"
+              to="/demo/dashboard"
               className="mt-1 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-500"
             >
               <FiZap size={16} />
-              Explore admin demo
+              Explore Admin Dashboard
             </Link>
           </div>
         </section>

@@ -11,10 +11,13 @@ import {
   Modal,
   PageHeader,
   Pagination,
+  ReadOnlyNotice,
   Select,
   TableSkeleton,
   Textarea,
 } from "../components/ui.jsx";
+import { useAdminAuth } from "../context/AdminAuthContext.jsx";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import { formatCurrency, formatDateTime, titleCase } from "../../utils/format.js";
 
@@ -37,6 +40,8 @@ const TYPE_LABELS = { cancellation: "Cancellation", return: "Return" };
 
 export default function AdminReturns() {
   const toast = useToast();
+  const { isReadOnly } = useAdminAuth();
+  const { to } = useAdminBase();
 
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState(null);
@@ -102,6 +107,8 @@ export default function AdminReturns() {
         breadcrumb={[{ label: "Returns" }]}
       />
 
+      {isReadOnly && <ReadOnlyNotice />}
+
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
           <Select
@@ -160,7 +167,7 @@ export default function AdminReturns() {
                     <tr key={item.id} className="hover:bg-indigo-50/40">
                       <td className="px-5 py-3">
                         <Link
-                          to={`/admin/orders/${item.order_id}`}
+                          to={to(`/orders/${item.order_id}`)}
                           className="font-semibold text-indigo-700 hover:underline"
                         >
                           {item.order_number}
@@ -231,7 +238,7 @@ export default function AdminReturns() {
         }}
         title={active ? `${TYPE_LABELS[active.type] || "Request"} · ${active.order_number}` : ""}
         footer={
-          active?.status === "requested" ? (
+          active?.status === "requested" && !isReadOnly ? (
             <>
               <Button
                 variant="danger"
@@ -287,7 +294,7 @@ export default function AdminReturns() {
               </div>
             )}
 
-            {active.status === "requested" && (
+            {active.status === "requested" && !isReadOnly && (
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-[#263968]">
                   Note to customer (optional)

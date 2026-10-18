@@ -15,17 +15,20 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import { cx } from "./ui.jsx";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 
+// Paths are prefixes relative to the console mount point, so they resolve
+// correctly under both "/admin" and the public "/demo" sandbox.
 export const NAV_ITEMS = [
-  { name: "Overview", path: "/admin", icon: FiGrid, end: true },
-  { name: "Products", path: "/admin/products", icon: FiPackage },
-  { name: "Categories", path: "/admin/categories", icon: FiTag },
-  { name: "Orders", path: "/admin/orders", icon: FiShoppingBag },
-  { name: "Returns", path: "/admin/returns", icon: FiRefreshCw },
-  { name: "Customers", path: "/admin/customers", icon: FiUsers },
-  { name: "Inventory", path: "/admin/inventory", icon: FiBox },
-  { name: "Analytics", path: "/admin/analytics", icon: FiBarChart2 },
-  { name: "Settings", path: "/admin/settings", icon: FiSettings },
+  { name: "Overview", path: "/dashboard", icon: FiGrid, end: true },
+  { name: "Products", path: "/products", icon: FiPackage },
+  { name: "Categories", path: "/categories", icon: FiTag },
+  { name: "Orders", path: "/orders", icon: FiShoppingBag },
+  { name: "Returns", path: "/returns", icon: FiRefreshCw },
+  { name: "Customers", path: "/customers", icon: FiUsers },
+  { name: "Inventory", path: "/inventory", icon: FiBox },
+  { name: "Analytics", path: "/analytics", icon: FiBarChart2 },
+  { name: "Settings", path: "/settings", icon: FiSettings },
 ];
 
 export default function Sidebar({
@@ -34,6 +37,8 @@ export default function Sidebar({
   onToggleCollapse,
   onCloseMobile,
 }) {
+  const { isDemo, to } = useAdminBase();
+
   const nav = (
     <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
       {NAV_ITEMS.map((item) => {
@@ -42,7 +47,7 @@ export default function Sidebar({
         return (
           <NavLink
             key={item.path}
-            to={item.path}
+            to={to(item.path)}
             end={item.end}
             onClick={onCloseMobile}
             title={collapsed ? item.name : undefined}
@@ -123,7 +128,9 @@ export default function Sidebar({
           </span>
           <div className={cx(collapsed && "md:hidden")}>
             <p className="text-base font-extrabold leading-tight">NovaShop</p>
-            <p className="text-xs text-blue-100/60">Admin console</p>
+            <p className="text-xs text-blue-100/60">
+              {isDemo ? "Demo console" : "Admin console"}
+            </p>
           </div>
           <button
             type="button"

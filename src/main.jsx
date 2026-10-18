@@ -2,7 +2,7 @@ import { StrictMode, Suspense, lazy } from "react";
 import * as ReactDOM from "react-dom/client";
 import "./index.css";
 
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 
 import MainLayout from "./layout/MainLayout.jsx";
 import Home from "./pages/Home.jsx";
@@ -63,6 +63,7 @@ const AdminInventory = lazy(() => import("./admin/pages/AdminInventory.jsx"));
 const AdminAnalytics = lazy(() => import("./admin/pages/AdminAnalytics.jsx"));
 const AdminSettings = lazy(() => import("./admin/pages/AdminSettings.jsx"));
 const AdminReturns = lazy(() => import("./admin/pages/AdminReturns.jsx"));
+const DemoAdminLayout = lazy(() => import("./admin/DemoAdminLayout.jsx"));
 
 const router = createBrowserRouter([
   {
@@ -115,6 +116,30 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <AdminDashboard /> },
+      { path: "dashboard", element: <AdminDashboard /> },
+      { path: "products", element: <AdminProducts /> },
+      { path: "products/new", element: <ProductForm /> },
+      { path: "products/:id/edit", element: <ProductForm /> },
+      { path: "categories", element: <AdminCategories /> },
+      { path: "orders", element: <AdminOrders /> },
+      { path: "orders/:id", element: <AdminOrderDetail /> },
+      { path: "returns", element: <AdminReturns /> },
+      { path: "customers", element: <AdminCustomers /> },
+      { path: "customers/:id", element: <AdminCustomerDetail /> },
+      { path: "inventory", element: <AdminInventory /> },
+      { path: "analytics", element: <AdminAnalytics /> },
+      { path: "settings", element: <AdminSettings /> },
+    ],
+  },
+
+  // Public, read-only demo dashboard (no authentication required). Reuses the
+  // same admin components; the server issues a scoped demo session on entry.
+  {
+    path: "/demo",
+    element: <DemoAdminLayout />,
+    children: [
+      { index: true, element: <Navigate to="/demo/dashboard" replace /> },
+      { path: "dashboard", element: <AdminDashboard /> },
       { path: "products", element: <AdminProducts /> },
       { path: "products/new", element: <ProductForm /> },
       { path: "products/:id/edit", element: <ProductForm /> },

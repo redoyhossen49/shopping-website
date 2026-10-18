@@ -3,11 +3,10 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiShield, FiMail, FiLock, FiArrowLeft, FiEye, FiEyeOff, FiZap } from "react-icons/fi";
 import { useAdminAuth } from "../context/AdminAuthContext.jsx";
 import { useAppConfig } from "../../context/AppConfigContext.jsx";
-import { adminApi } from "../../api/admin.js";
 import { Button, Field, Input } from "../components/ui.jsx";
 
 export default function AdminLogin() {
-  const { admin, loading, login, refresh } = useAdminAuth();
+  const { admin, loading, login } = useAdminAuth();
   const { demoMode } = useAppConfig();
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,9 +15,8 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [demoSubmitting, setDemoSubmitting] = useState(false);
 
-  const redirectTo = location.state?.from || "/admin";
+  const redirectTo = location.state?.from || "/admin/dashboard";
 
   useEffect(() => {
     if (!loading && admin) {
@@ -56,21 +54,11 @@ export default function AdminLogin() {
     }
   };
 
-  // Starts a scoped demo-admin session server-side. No password ever reaches
-  // the browser, and every query is limited to demo data.
-  const startDemo = async () => {
+  // The public "/demo" route boots its own scoped, read-only session, so the
+  // button can simply navigate there without exposing any credentials.
+  const startDemo = () => {
     setError("");
-    setDemoSubmitting(true);
-
-    try {
-      await adminApi.startDemoSession();
-      await refresh();
-      navigate(redirectTo, { replace: true });
-    } catch (err) {
-      setError(err.message || "The demo dashboard is unavailable right now.");
-    } finally {
-      setDemoSubmitting(false);
-    }
+    navigate("/demo/dashboard");
   };
 
   return (
@@ -164,18 +152,17 @@ export default function AdminLogin() {
             </p>
             <p className="mt-1 text-xs leading-5 text-indigo-900">
               Step into a pre-loaded sandbox with sample orders, products and
-              customers. Read/write, and isolated from any real store data.
+              customers. Read-only, and isolated from any real store data.
             </p>
             <Button
               type="button"
               variant="secondary"
               size="sm"
               className="mt-3 w-full"
-              loading={demoSubmitting}
               onClick={startDemo}
             >
               <FiZap size={15} />
-              Explore demo dashboard
+              Explore Admin Dashboard
             </Button>
           </div>
         )}

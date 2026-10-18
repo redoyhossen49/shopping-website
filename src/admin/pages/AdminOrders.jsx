@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiEye, FiRefreshCw, FiShoppingBag } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
 import useDebouncedValue from "../hooks/useDebouncedValue.js";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 import {
   Button,
   Card,
@@ -44,6 +45,7 @@ const SORT_OPTIONS = [
 
 export default function AdminOrders() {
   const navigate = useNavigate();
+  const { to } = useAdminBase();
 
   const [orders, setOrders] = useState([]);
   const [meta, setMeta] = useState(null);
@@ -222,7 +224,7 @@ export default function AdminOrders() {
                     <tr
                       key={order.id}
                       className="cursor-pointer hover:bg-indigo-50/40"
-                      onClick={() => navigate(`/admin/orders/${order.id}`)}
+                      onClick={() => navigate(to(`/orders/${order.id}`))}
                     >
                       <td className="px-5 py-3 font-semibold text-indigo-700">
                         {order.order_number}
@@ -258,7 +260,7 @@ export default function AdminOrders() {
                             aria-label={`View ${order.order_number}`}
                             onClick={(event) => {
                               event.stopPropagation();
-                              navigate(`/admin/orders/${order.id}`);
+                              navigate(to(`/orders/${order.id}`));
                             }}
                           >
                             <FiEye size={16} />

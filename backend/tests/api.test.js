@@ -1,8 +1,13 @@
 import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import bcrypt from "bcrypt";
-import app from "../src/app.js";
-import { pool } from "../src/config/db.js";
+
+// This suite exercises the owner (non-demo) storefront, so force demo mode off
+// regardless of the developer's local .env. Set before importing env/app.
+process.env.DEMO_MODE = "false";
+
+const { default: app } = await import("../src/app.js");
+const { pool } = await import("../src/config/db.js");
 
 const stamp = Date.now();
 const ADMIN = {

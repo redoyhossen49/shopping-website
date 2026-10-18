@@ -52,8 +52,6 @@ async function request(path, { method = "GET", body } = {}) {
 // ---------------------------------------------------------------------------
 const OWNER_PRODUCT_TITLE = `Owner Scoped Product ${stamp}`;
 const OWNER_CATEGORY = `Owner Scoped Category ${stamp}`;
-const DEMO_PRODUCT_TITLE = `Demo Scoped Product ${stamp}`;
-const DEMO_CATEGORY = `Demo Scoped Category ${stamp}`;
 
 // Non-demo rows created by these tests, removed explicitly in after().
 const ownerOnly = { products: [], categories: [], orders: [] };
@@ -105,6 +103,14 @@ async function demoAdminClient() {
   assert.equal(res.status, 200);
   assert.equal(res.body.data.role, "admin");
   return api;
+}
+
+// The demo catalog is seeded by resetAndSeedDemo; grab a known-good row.
+async function firstDemoProduct(demo) {
+  const list = await demo.request("/api/admin/products?limit=100");
+  assert.equal(list.status, 200);
+  assert.ok(list.body.data.length >= 10, "expected a seeded demo catalog");
+  return list.body.data[0];
 }
 
 before(async () => {
@@ -230,51 +236,35 @@ test("public demo session endpoint issues a scoped admin cookie", async () => {
   const me = await demo.request("/api/admin/me");
   assert.equal(me.status, 200);
   assert.equal(me.body.data.role, "admin");
+  assert.equal(me.body.data.is_demo, true);
 });
 
-test("public product listing is paginated and scoped to the demo catalog", async () => {
-  const api = jar();
+test("demo admin session is read-only", async () => {
+  const demo = await demoAdminClient();
 
-  const first = await api.request("/api/products");
-  assert.equal(first.status, 200);
-  assert.equal(first.body.data.length, 6);
-  assert.equal(first.body.meta.limit, 6);
-  assert.equal(first.body.meta.page, 1);
-  assert.ok(first.body.meta.total >= 16);
-  assert.equal(
-    first.body.meta.totalPages,
-    Math.ceil(first.body.meta.total / 6)
-  );
-
-  const second = await api.request("/api/products?page=2&limit=6");
-  assert.equal(second.body.meta.page, 2);
-  assert.equal(second.body.data.length, 6);
-  // Pages must not overlap.
-  assert.ok(
-    second.body.data.every(
-      (row) => !first.body.data.some((prev) => prev.id === row.id)
-    )
-  );
-
-  const clamped = await api.request("/api/products?limit=1000");
-  assert.equal(clamped.body.meta.limit, 100);
-
-  // A real (owner) product must never surface on the demo storefront.
-  const owner = await ownerAdminClient();
-  const ownerProduct = await owner.request("/api/admin/products", {
+  // Every mutating verb is refused before it reaches a controller.
+  const createProduct = await demo.request("/api/admin/products", {
     method: "POST",
-    body: { title: OWNER_PRODUCT_TITLE, price: 50, stock: 2, category: "Owner" },
+    body: { title: "Should Not Exist", price: 10, stock: 1, category: "Demo" },
   });
-  assert.equal(ownerProduct.status, 201);
-  ownerOnly.products.push(ownerProduct.body.data.id);
+  assert.equal(createProduct.status, 403);
 
-  const search = await api.request(
-    `/api/products?search=${encodeURIComponent(OWNER_PRODUCT_TITLE)}&limit=100`
-  );
-  assert.equal(search.body.data.length, 0);
+  const createCategory = await demo.request("/api/admin/categories", {
+    method: "POST",
+    body: { name: "Should Not Exist" },
+  });
+  assert.equal(createCategory.status, 403);
+
+  const reset = await demo.request("/api/admin/demo/reset", { method: "POST" });
+  assert.equal(reset.status, 403);
+
+  // Reads keep working so the whole dashboard stays explorable.
+  assert.equal((await demo.request("/api/admin/dashboard")).status, 200);
+  assert.equal((await demo.request("/api/admin/analytics")).status, 200);
+  assert.equal((await demo.request("/api/admin/products")).status, 200);
 });
 
-test("admin product data is isolated between owner and demo scopes", async () => {
+test("public storefront serves real products and never leaks demo data", async () => {
   const owner = await ownerAdminClient();
   const demo = await demoAdminClient();
 
@@ -286,31 +276,91 @@ test("admin product data is isolated between owner and demo scopes", async () =>
   const ownerProductId = ownerProduct.body.data.id;
   ownerOnly.products.push(ownerProductId);
 
-  const demoProduct = await demo.request("/api/admin/products", {
-    method: "POST",
-    body: { title: DEMO_PRODUCT_TITLE, price: 60, stock: 2, category: "Demo" },
-  });
-  assert.equal(demoProduct.status, 201);
-  const demoProductId = demoProduct.body.data.id;
+  const demoProduct = await firstDemoProduct(demo);
 
-  // The owner scope cannot see the synthetic demo product.
-  const ownerSearch = await owner.request(
-    `/api/admin/products?search=${encodeURIComponent(DEMO_PRODUCT_TITLE)}`
-  );
-  assert.equal(ownerSearch.body.data.length, 0);
+  const api = jar();
+  const first = await api.request("/api/products?limit=6");
+
+  assert.equal(first.status, 200);
+  assert.equal(first.body.meta.limit, 6);
+  assert.equal(first.body.meta.page, 1);
+  assert.ok(first.body.meta.total >= 1, "expected a real catalogue");
+  assert.equal(first.body.data.length, Math.min(6, first.body.meta.total));
   assert.equal(
-    (await owner.request(`/api/admin/products/${demoProductId}`)).status,
-    404
+    first.body.meta.totalPages,
+    Math.max(1, Math.ceil(first.body.meta.total / 6))
   );
+  // The storefront only ever exposes real (non-demo) rows.
+  assert.ok(first.body.data.every((row) => row.is_demo === false));
 
-  // The demo scope cannot see the real owner product.
-  const demoSearch = await demo.request(
-    `/api/admin/products?search=${encodeURIComponent(OWNER_PRODUCT_TITLE)}`
+  // Pages must not overlap.
+  if (first.body.meta.total > 6) {
+    const second = await api.request("/api/products?page=2&limit=6");
+    assert.equal(second.body.meta.page, 2);
+    assert.equal(
+      second.body.data.length,
+      Math.min(6, first.body.meta.total - 6)
+    );
+    assert.ok(
+      second.body.data.every(
+        (row) => !first.body.data.some((prev) => prev.id === row.id)
+      )
+    );
+  }
+
+  const clamped = await api.request("/api/products?limit=1000");
+  assert.equal(clamped.body.meta.limit, 100);
+
+  // A real (owner) product is publicly visible ...
+  const ownerSearch = await api.request(
+    `/api/products?search=${encodeURIComponent(OWNER_PRODUCT_TITLE)}&limit=100`
   );
-  assert.equal(demoSearch.body.data.length, 0);
+  assert.ok(ownerSearch.body.data.some((row) => row.id === ownerProductId));
+
+  // ... and demo-sandbox data must never surface on the storefront.
+  const demoSearch = await api.request(
+    `/api/products?search=${encodeURIComponent(demoProduct.title)}&limit=100`
+  );
+  assert.ok(!demoSearch.body.data.some((row) => row.id === demoProduct.id));
+});
+
+test("admin product data is isolated between owner and demo scopes", async () => {
+  const owner = await ownerAdminClient();
+  const demo = await demoAdminClient();
+
+  // The owner creates a real product.
+  const ownerProduct = await owner.request("/api/admin/products", {
+    method: "POST",
+    body: { title: OWNER_PRODUCT_TITLE, price: 50, stock: 2, category: "Owner" },
+  });
+  assert.equal(ownerProduct.status, 201);
+  const ownerProductId = ownerProduct.body.data.id;
+  ownerOnly.products.push(ownerProductId);
+
+  const demoProduct = await firstDemoProduct(demo);
+
+  // Cross-scope reads are indistinguishable from missing rows.
   assert.equal(
     (await demo.request(`/api/admin/products/${ownerProductId}`)).status,
     404
+  );
+  assert.equal(
+    (await owner.request(`/api/admin/products/${demoProduct.id}`)).status,
+    404
+  );
+
+  // Each scope only ever lists its own rows.
+  const demoList = await demo.request("/api/admin/products?limit=100");
+  assert.ok(demoList.body.data.some((row) => row.id === demoProduct.id));
+  assert.ok(!demoList.body.data.some((row) => row.id === ownerProductId));
+
+  const ownerList = await owner.request("/api/admin/products?limit=100");
+  assert.ok(!ownerList.body.data.some((row) => row.id === demoProduct.id));
+
+  // In-scope reads succeed.
+  assert.equal(
+    (await demo.request(`/api/admin/products/${demoProduct.id}`)).status,
+    200
   );
 });
 
@@ -323,32 +373,32 @@ test("categories are isolated between owner, demo and public scopes", async () =
     body: { name: OWNER_CATEGORY },
   });
   assert.equal(ownerCategory.status, 201);
-  ownerOnly.categories.push(ownerCategory.body.data.id);
-
-  const demoCategory = await demo.request("/api/admin/categories", {
-    method: "POST",
-    body: { name: DEMO_CATEGORY },
-  });
-  assert.equal(demoCategory.status, 201);
-
-  const ownerList = await owner.request("/api/admin/categories");
-  assert.ok(ownerList.body.data.some((row) => row.name === OWNER_CATEGORY));
-  assert.ok(!ownerList.body.data.some((row) => row.name === DEMO_CATEGORY));
+  const ownerCategoryId = ownerCategory.body.data.id;
+  ownerOnly.categories.push(ownerCategoryId);
 
   const demoList = await demo.request("/api/admin/categories");
-  assert.ok(demoList.body.data.some((row) => row.name === DEMO_CATEGORY));
-  assert.ok(!demoList.body.data.some((row) => row.name === OWNER_CATEGORY));
+  assert.ok(demoList.body.data.length >= 1, "expected seeded demo categories");
+  const demoCategoryId = demoList.body.data[0].id;
 
-  // The public storefront follows the deployment scope (demo mode).
+  // Each scope only ever lists its own rows.
+  assert.ok(demoList.body.data.some((row) => row.id === demoCategoryId));
+  assert.ok(!demoList.body.data.some((row) => row.id === ownerCategoryId));
+
+  const ownerList = await owner.request("/api/admin/categories");
+  assert.ok(ownerList.body.data.some((row) => row.id === ownerCategoryId));
+  assert.ok(!ownerList.body.data.some((row) => row.id === demoCategoryId));
+
+  // The public storefront follows the real (owner) scope.
   const publicList = await jar().request("/api/categories");
-  assert.ok(publicList.body.data.some((row) => row.name === DEMO_CATEGORY));
-  assert.ok(!publicList.body.data.some((row) => row.name === OWNER_CATEGORY));
+  assert.ok(publicList.body.data.some((row) => row.id === ownerCategoryId));
+  assert.ok(!publicList.body.data.some((row) => row.id === demoCategoryId));
 });
 
 test("orders are isolated between owner and demo scopes", async () => {
   const { createOrder } = await import("../src/services/orders.service.js");
   const owner = await ownerAdminClient();
   const demo = await demoAdminClient();
+  const demoProduct = await firstDemoProduct(demo);
 
   const ownerProduct = await owner.request("/api/admin/products", {
     method: "POST",
@@ -376,35 +426,22 @@ test("orders are isolated between owner and demo scopes", async () => {
   });
   ownerOnly.orders.push(ownerOrder.id);
 
-  // The deployment is in demo mode, so a guest checkout writes demo data.
-  const demoProduct = await demo.request("/api/admin/products", {
-    method: "POST",
-    body: {
-      title: `Demo Order Product ${stamp}`,
-      price: 100,
-      stock: 5,
-      category: "Demo",
-    },
+  // A checkout inside the demo sandbox writes demo data. (A guest checkout
+  // writes to the real store instead — covered by its own test below.)
+  const demoOrder = await createOrder({
+    customerName: "Demo Buyer",
+    customerEmail: `demo-buyer-${stamp}@test.local`,
+    customerPhone: "01700000000",
+    shippingAddress: "2 Demo Road",
+    shippingCity: "Dhaka",
+    shippingCountry: "Bangladesh",
+    shippingPostalCode: "1207",
+    items: [{ productId: demoProduct.id, quantity: 1 }],
+    paymentMethod: "cod",
+    isDemo: true,
   });
-  assert.equal(demoProduct.status, 201);
-
-  const guest = jar();
-  const demoOrder = await guest.request("/api/orders", {
-    method: "POST",
-    body: {
-      customer_name: "Demo Buyer",
-      customer_email: `demo-buyer-${stamp}@test.local`,
-      customer_phone: "01700000000",
-      shipping_address: "2 Demo Road",
-      shipping_city: "Dhaka",
-      shipping_country: "Bangladesh",
-      shipping_postal_code: "1207",
-      items: [{ productId: demoProduct.body.data.id, quantity: 1 }],
-    },
-  });
-  assert.equal(demoOrder.status, 201);
-  const demoOrderId = demoOrder.body.data.id;
-  const demoOrderNumber = demoOrder.body.data.order_number;
+  const demoOrderId = demoOrder.id;
+  const demoOrderNumber = demoOrder.order_number;
 
   // Cross-scope detail reads are indistinguishable from missing rows.
   assert.equal(
@@ -431,6 +468,57 @@ test("orders are isolated between owner and demo scopes", async () => {
     `/api/admin/orders?search=${encodeURIComponent(demoOrderNumber)}`
   );
   assert.equal(ownerOrderSearch.body.data.length, 0);
+
+  // Even inside its own scope, the demo session cannot mutate the order.
+  const blocked = await demo.request(`/api/admin/orders/${demoOrderId}/status`, {
+    method: "PATCH",
+    body: { status: "processing" },
+  });
+  assert.equal(blocked.status, 403);
+});
+
+test("guest checkout writes to the real store, not the demo sandbox", async () => {
+  const owner = await ownerAdminClient();
+  const demo = await demoAdminClient();
+
+  const ownerProduct = await owner.request("/api/admin/products", {
+    method: "POST",
+    body: {
+      title: `Guest Store Product ${stamp}`,
+      price: 30,
+      stock: 4,
+      category: "Owner",
+    },
+  });
+  assert.equal(ownerProduct.status, 201);
+  ownerOnly.products.push(ownerProduct.body.data.id);
+
+  const guest = jar();
+  const order = await guest.request("/api/orders", {
+    method: "POST",
+    body: {
+      customer_name: "Real Guest",
+      customer_email: `real-guest-${stamp}@test.local`,
+      customer_phone: "01700000000",
+      shipping_address: "3 Real Road",
+      shipping_city: "Dhaka",
+      shipping_country: "Bangladesh",
+      shipping_postal_code: "1207",
+      items: [{ productId: ownerProduct.body.data.id, quantity: 1 }],
+    },
+  });
+  assert.equal(order.status, 201);
+  ownerOnly.orders.push(order.body.data.id);
+
+  // The owner sees the order; the demo sandbox does not.
+  assert.equal(
+    (await owner.request(`/api/admin/orders/${order.body.data.id}`)).status,
+    200
+  );
+  assert.equal(
+    (await demo.request(`/api/admin/orders/${order.body.data.id}`)).status,
+    404
+  );
 });
 
 test("demo admin cannot change shared store settings", async () => {

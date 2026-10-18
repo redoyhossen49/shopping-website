@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { FiPlus, FiEdit2, FiTrash2, FiPackage, FiRefreshCw } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
 import useDebouncedValue from "../hooks/useDebouncedValue.js";
+import { useAdminAuth } from "../context/AdminAuthContext.jsx";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import {
   Badge,
@@ -34,6 +36,8 @@ const SORT_OPTIONS = [
 
 export default function AdminProducts() {
   const toast = useToast();
+  const { isReadOnly } = useAdminAuth();
+  const { to } = useAdminBase();
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
@@ -147,9 +151,11 @@ export default function AdminProducts() {
         description="Create, edit, and manage your catalog."
         breadcrumb={[{ label: "Products" }]}
         actions={
-          <LinkButton to="/admin/products/new" variant="primary">
-            <FiPlus size={16} /> Add product
-          </LinkButton>
+          isReadOnly ? undefined : (
+            <LinkButton to={to("/products/new")} variant="primary">
+              <FiPlus size={16} /> Add product
+            </LinkButton>
+          )
         }
       />
 
@@ -245,9 +251,11 @@ export default function AdminProducts() {
             title="No products found"
             description="Adjust your filters or add a new product to your catalog."
             action={
-              <LinkButton to="/admin/products/new">
-                <FiPlus size={16} /> Add product
-              </LinkButton>
+              isReadOnly ? undefined : (
+                <LinkButton to={to("/products/new")}>
+                  <FiPlus size={16} /> Add product
+                </LinkButton>
+              )
             }
           />
         ) : (
@@ -320,22 +328,24 @@ export default function AdminProducts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            aria-label={`Edit ${product.title}`}
+                            aria-label={`${isReadOnly ? "View" : "Edit"} ${product.title}`}
                             onClick={() =>
-                              navigate(`/admin/products/${product.id}/edit`)
+                              navigate(to(`/products/${product.id}/edit`))
                             }
                           >
                             <FiEdit2 size={16} />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            aria-label={`Delete ${product.title}`}
-                            className="text-rose-600 hover:bg-rose-50"
-                            onClick={() => setPendingDelete(product)}
-                          >
-                            <FiTrash2 size={16} />
-                          </Button>
+                          {!isReadOnly && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Delete ${product.title}`}
+                              className="text-rose-600 hover:bg-rose-50"
+                              onClick={() => setPendingDelete(product)}
+                            >
+                              <FiTrash2 size={16} />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

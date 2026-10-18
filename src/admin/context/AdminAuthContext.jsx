@@ -14,6 +14,10 @@ export function AdminAuthProvider({ children }) {
 
   const admin = user && user.role === "admin" ? user : null;
 
+  // Demo sessions are issued by the server as a read-only window into the
+  // dashboard. The flag rides on the same user object returned by /auth/me.
+  const isReadOnly = Boolean(admin?.is_demo);
+
   const login = useCallback(
     async (email, password) => {
       const data = await authLogin(email, password);
@@ -32,7 +36,9 @@ export function AdminAuthProvider({ children }) {
   const logout = useCallback(() => authLogout(), [authLogout]);
 
   return (
-    <AdminAuthContext.Provider value={{ admin, loading, login, logout, refresh }}>
+    <AdminAuthContext.Provider
+      value={{ admin, isReadOnly, loading, login, logout, refresh }}
+    >
       {children}
     </AdminAuthContext.Provider>
   );

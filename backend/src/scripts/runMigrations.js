@@ -3,19 +3,16 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
+import { getDatabaseConfig } from "../config/database.js";
 
 const { Pool } = pg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+// Same target as the running API (connection string when present, otherwise
+// the discrete DB_* variables used locally).
+const pool = new Pool(getDatabaseConfig());
 
 async function ensureMigrationsTable(client) {
   await client.query(`

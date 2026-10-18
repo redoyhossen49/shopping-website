@@ -3,8 +3,9 @@ import { FiAlertCircle } from "react-icons/fi";
 import { useAppConfig } from "../context/AppConfigContext.jsx";
 
 /**
- * Banner shown whenever the app is backed by a demo sandbox. It tells visitors
- * the data is synthetic and where to reset it.
+ * Banner shown whenever the read-only admin demo sandbox is available. The
+ * storefront itself always serves the real store; only the dashboard uses the
+ * synthetic demo dataset.
  */
 export default function DemoBanner() {
   const { demoMode } = useAppConfig();
@@ -19,14 +20,14 @@ export default function DemoBanner() {
       <span className="inline-flex items-center gap-1.5">
         <FiAlertCircle aria-hidden="true" />
         <span>
-          Demo sandbox — all products, customers and orders are sample data
-          and can be edited or reset.
+          Admin demo available — explore a read-only dashboard with sample
+          customers, orders and inventory.
         </span>
         <Link
-          to="/admin/login"
+          to="/demo/dashboard"
           className="underline underline-offset-2 hover:text-amber-700"
         >
-          Open admin demo
+          Explore Admin Dashboard
         </Link>
       </span>
     </div>

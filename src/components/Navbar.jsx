@@ -181,7 +181,7 @@ const Navbar = () => {
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-blue-950 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 lg:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-blue-950 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 xl:hidden"
           aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
           aria-expanded={menuOpen}
         >
@@ -191,7 +191,7 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       <div
-        className={`overflow-hidden border-t border-slate-100 bg-white transition-[max-height,opacity] duration-300 lg:hidden ${
+        className={`overflow-hidden border-t border-slate-100 bg-white transition-[max-height,opacity] duration-300 xl:hidden ${
           menuOpen
             ? "max-h-[600px] opacity-100"
             : "pointer-events-none max-h-0 opacity-0"

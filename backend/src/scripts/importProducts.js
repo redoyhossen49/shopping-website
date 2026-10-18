@@ -1,15 +1,10 @@
 import "dotenv/config";
 import pg from "pg";
+import { getDatabaseConfig } from "../config/database.js";
 
 const { Pool } = pg;
 
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+const pool = new Pool(getDatabaseConfig());
 
 async function importProducts() {
   // A single checked-out client is required so BEGIN/COMMIT and every query in

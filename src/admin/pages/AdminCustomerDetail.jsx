@@ -9,6 +9,8 @@ import {
   FiUserX,
 } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
+import { useAdminAuth } from "../context/AdminAuthContext.jsx";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import {
   Badge,
@@ -21,6 +23,7 @@ import {
   OrderStatusBadge,
   PageHeader,
   PaymentStatusBadge,
+  ReadOnlyNotice,
   Skeleton,
 } from "../components/ui.jsx";
 import { formatCurrency, formatDate, formatDateTime } from "../../utils/format.js";
@@ -28,6 +31,8 @@ import { formatCurrency, formatDate, formatDateTime } from "../../utils/format.j
 export default function AdminCustomerDetail() {
   const { id } = useParams();
   const toast = useToast();
+  const { isReadOnly } = useAdminAuth();
+  const { to } = useAdminBase();
 
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -97,12 +102,12 @@ export default function AdminCustomerDetail() {
         title={customer.name}
         description={customer.email}
         breadcrumb={[
-          { label: "Customers", to: "/admin/customers" },
+          { label: "Customers", to: "/customers" },
           { label: customer.name },
         ]}
         actions={
           <Link
-            to="/admin/customers"
+            to={to("/customers")}
             className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600"
           >
             <FiArrowLeft size={16} /> Back to customers
@@ -136,6 +141,7 @@ export default function AdminCustomerDetail() {
               variant={customer.is_active ? "danger" : "primary"}
               className="w-full"
               onClick={() => setConfirming(true)}
+              disabled={isReadOnly}
             >
               {customer.is_active ? (
                 <>
@@ -147,6 +153,8 @@ export default function AdminCustomerDetail() {
                 </>
               )}
             </Button>
+
+            {isReadOnly && <ReadOnlyNotice />}
           </div>
         </Card>
 
@@ -185,7 +193,7 @@ export default function AdminCustomerDetail() {
                   <tr key={order.id} className="hover:bg-indigo-50/40">
                     <td className="px-5 py-3">
                       <Link
-                        to={`/admin/orders/${order.id}`}
+                        to={to(`/orders/${order.id}`)}
                         className="font-semibold text-indigo-700 hover:underline"
                       >
                         {order.order_number}

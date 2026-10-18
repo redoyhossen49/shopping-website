@@ -14,10 +14,11 @@ export const getDemoStatusController = asyncHandler(async (req, res) => {
 });
 
 /**
- * Starts a read/write demo administrator session without exposing any
+ * Starts a read-only demo administrator session without exposing any
  * credentials to the browser. Only available when DEMO_MODE is enabled, and
  * rate limited at the route level. The issued token belongs to the dedicated
- * demo admin, so every subsequent query is scoped to is_demo data only.
+ * demo admin, so every subsequent query is scoped to is_demo data only, and
+ * write requests are rejected by the blockDemoWrites middleware.
  */
 export const startDemoSessionController = asyncHandler(async (req, res) => {
   if (!env.demoMode) {

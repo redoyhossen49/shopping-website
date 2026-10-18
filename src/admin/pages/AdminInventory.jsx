@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FiActivity, FiDownload, FiPackage, FiRefreshCw } from "react-icons/fi";
 import { adminApi } from "../../api/admin.js";
+import { useAdminAuth } from "../context/AdminAuthContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import {
   Badge,
@@ -13,6 +14,7 @@ import {
   Input,
   Modal,
   PageHeader,
+  ReadOnlyNotice,
   Select,
   Skeleton,
   StockBadge,
@@ -28,6 +30,7 @@ const ACTIONS = [
 
 export default function AdminInventory() {
   const toast = useToast();
+  const { isReadOnly } = useAdminAuth();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +127,8 @@ export default function AdminInventory() {
         }
       />
 
+      {isReadOnly && <ReadOnlyNotice />}
+
       <Card>
         {loading ? (
           <TableSkeleton rows={6} columns={5} />
@@ -193,13 +198,15 @@ export default function AdminInventory() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => openAdjust(product)}
-                        >
-                          Adjust stock
-                        </Button>
+                        {!isReadOnly && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => openAdjust(product)}
+                          >
+                            Adjust stock
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"

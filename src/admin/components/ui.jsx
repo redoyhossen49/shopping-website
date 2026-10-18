@@ -5,13 +5,37 @@ import {
   FiChevronRight,
   FiInbox,
   FiAlertTriangle,
+  FiLock,
   FiX,
   FiLoader,
 } from "react-icons/fi";
 import { titleCase } from "../../utils/format.js";
+import { useAdminBase } from "../context/AdminBaseContext.jsx";
 
 export function cx(...classes) {
   return classes.filter(Boolean).join(" ");
+}
+
+/**
+ * Inline notice shown wherever a write action is unavailable because the
+ * current session is the read-only public demo.
+ */
+export function ReadOnlyNotice({ children, className = "" }) {
+  return (
+    <div
+      role="status"
+      className={cx(
+        "flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900",
+        className
+      )}
+    >
+      <FiLock size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+      <span>
+        {children ||
+          "This is a read-only demo. Sign in as the store owner to make changes."}
+      </span>
+    </div>
+  );
 }
 
 export function Card({ children, className = "" }) {
@@ -306,18 +330,20 @@ export function ErrorState({ message, onRetry }) {
 }
 
 export function PageHeader({ title, description, breadcrumb = [], actions }) {
+  const { to } = useAdminBase();
+
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500">
-          <Link to="/admin" className="hover:text-indigo-600">
+          <Link to={to("/dashboard")} className="hover:text-indigo-600">
             Admin
           </Link>
           {breadcrumb.map((crumb) => (
             <React.Fragment key={crumb.label}>
               <span className="text-slate-300">/</span>
               {crumb.to ? (
-                <Link to={crumb.to} className="hover:text-indigo-600">
+                <Link to={to(crumb.to)} className="hover:text-indigo-600">
                   {crumb.label}
                 </Link>
               ) : (

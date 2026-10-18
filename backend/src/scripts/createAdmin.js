@@ -2,16 +2,11 @@ import "dotenv/config";
 import pg from "pg";
 import bcrypt from "bcrypt";
 import { env } from "../config/env.js";
+import { getDatabaseConfig } from "../config/database.js";
 
 const { Pool } = pg;
 
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+const pool = new Pool(getDatabaseConfig());
 
 function prompt() {
   if (process.argv.length < 5) {
