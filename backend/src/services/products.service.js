@@ -2,6 +2,7 @@ import { pool } from "../config/db.js";
 import { env } from "../config/env.js";
 import { badRequest, conflict, notFound } from "../utils/ApiError.js";
 import { buildMeta } from "../utils/pagination.js";
+import { slugify } from "../utils/validate.js";
 
 const ADMIN_SELECT = `
   SELECT
@@ -62,8 +63,36 @@ export async function listPublicProducts({
   }
 
   if (categorySlug) {
-    params.push(categorySlug);
-    conditions.push(`c.slug = $${params.length}`);
+    const slugParam = String(categorySlug);
+    const realCategory = await pool.query(
+      "SELECT 1 FROM public.categories WHERE is_demo = $1 AND slug = $2",
+      [isDemo, slugParam]
+    );
+
+    if (realCategory.rows[0]) {
+      params.push(slugParam);
+      conditions.push(`c.slug = $${params.length}`);
+    } else {
+      // The slug does not point at a stored category (categories were never
+      // created for this deployment). Map the slug back to the product's own
+      // text label so filtering still works - read-only, no writes.
+      const labels = await pool.query(
+        `SELECT DISTINCT COALESCE(TRIM(category), '') AS label
+         FROM public.products
+         WHERE is_demo = $1
+           AND COALESCE(TRIM(category), '') <> ''`,
+        [isDemo]
+      );
+      const label = labels.rows
+        .map((row) => row.label)
+        .find((name) => slugify(name) === slugParam.toLowerCase());
+
+      params.push(label ?? slugParam);
+      conditions.push(
+        `p.category_id IS NULL
+         AND LOWER(TRIM(p.category)) = LOWER($${params.length})`
+      );
+    }
   }
 
   if (availability === "in") {

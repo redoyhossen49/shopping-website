@@ -1,5 +1,6 @@
 import { pool } from "../config/db.js";
 import { conflict, notFound } from "../utils/ApiError.js";
+import { slugify } from "../utils/validate.js";
 
 const SELECT = `
   SELECT
@@ -18,7 +19,35 @@ export async function listCategories(isDemo) {
     [isDemo]
   );
 
-  return result.rows;
+  if (result.rows.length > 0) {
+    return result.rows;
+  }
+
+  // Fallback for deployments whose products were imported before categories
+  // existed (e.g. production right now): derive the list from the distinct
+  // category labels on the products themselves. Read-only by design - no row
+  // is created, and real category rows take precedence once they exist.
+  const fallback = await pool.query(
+    `SELECT COALESCE(TRIM(p.category), '') AS label, COUNT(*)::int AS product_count
+     FROM public.products p
+     WHERE p.is_demo = $1
+       AND COALESCE(TRIM(p.category), '') <> ''
+     GROUP BY COALESCE(TRIM(p.category), '')
+     ORDER BY label ASC`,
+    [isDemo]
+  );
+
+  return fallback.rows.map((row) => ({
+    id: null,
+    name: row.label,
+    slug: slugify(row.label),
+    description: null,
+    image_url: null,
+    created_at: null,
+    updated_at: null,
+    is_demo: Boolean(isDemo),
+    product_count: row.product_count,
+  }));
 }
 
 export async function getCategoryById(id, isDemo) {

@@ -266,7 +266,7 @@ const Products = () => {
         </button>
         {categories.map((item) => (
           <button
-            key={item.id}
+            key={item.id ?? item.slug}
             onClick={() => changeCategory(item.slug)}
             className={`border rounded p-2 text-center text-xs md:text-sm hover:bg-gray-800 hover:text-white ${
               category === item.slug ? "bg-gray-800 text-white" : ""
