@@ -23,9 +23,17 @@ export function getDatabaseConfig() {
   ).trim();
 
   if (connectionString) {
+    let ssl = { rejectUnauthorized: false };
+    try {
+      const hostname = new URL(connectionString).hostname;
+      const isLocal = ["localhost", "127.0.0.1", "::1"].includes(hostname);
+      if (isLocal) ssl = false;
+    } catch {
+      // Unparseable string: keep TLS-on (safe default for managed hosts).
+    }
     return {
       connectionString,
-      ssl: { rejectUnauthorized: false },
+      ssl,
     };
   }
 
