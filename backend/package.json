@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "migrate": "node src/scripts/runMigrations.js",
     "import:products": "node src/scripts/importProducts.js",
+    "backfill:categories": "node src/scripts/backfillCategories.js",
     "seed:demo": "node src/scripts/seedDemo.js",
     "seed:demo:reset": "node src/scripts/seedDemo.js --reset",
     "admin:create": "node src/scripts/createAdmin.js"
